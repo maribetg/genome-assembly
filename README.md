@@ -1,13 +1,13 @@
 # genome-assembly
 steps for genome assembly
 
-
-# emerge two files for velvet
+# Velvet
+## Emerge two files for velvet
 ./RAD/velvet_1.2.10/contrib/shuffleSequences_fasta/shuffleSequences_fasta.pl ./Genome-Siphonoperla-torrentium/FCH5H32CCXY_L4_wHADPI063284-113_1.fq ./Genome-Siphonoperla-torrentium/FCH5H32CCXY_L4_wHADPI063284-113_2.fq genome.fq
 
 ./RAD/velvet_1.2.10/contrib/shuffleSequences_fasta/shuffleSequences_fasta.pl ./Genome-Siphonoperla-torrentium/genome-second-run/FCHLJHLCCXY_L8_WHRDINSqgmRAAAAA-701501_1.fq ./Genome-Siphonoperla-torrentium/genome-second-run/FCHLJHLCCXY_L8_WHRDINSqgmRAAAAA-701501_2.fq genome02.fq
 
-# Run velveth
+## Run velveth
 velveth velvelhgenome 31,45,2 -fastq -shortPaired genome.fq 
 velvetg velvelhgenome_31 -exp_cov auto 
 
@@ -20,11 +20,12 @@ velvetg velvelhgenome_31 -exp_cov auto
 velveth velvelhgenome 81 -fastq -shortPaired ./Genome-Siphonoperla-torrentium/genome-clean-alldata.fastq 
 velvetg velvelhgenome_81 -exp_cov auto 
 
-# installing sga
+# Sga
+## Installing sga
 ./sga/src/configure --with-sparsehash=/sparsehash --with-bamtools=/usr/local --prefix=/sga/sga/install
 make
 
-# sga for quality control
+## sga for quality control
 ./sga/SGA/sga preprocess --pe-mode 1 FCH5H32CCXY_L4_wHADPI063284-113_1.fq FCH5H32CCXY_L4_wHADPI063284-113_2.fq > genome.fastq
 
 ./sga/SGA/sga preprocess --pe-mode 1 -q -f FCH5H32CCXY_L4_wHADPI063284-113_1.fq FCH5H32CCXY_L4_wHADPI063284-113_2.fq > genome-clean.fastq
@@ -47,47 +48,49 @@ python2 ./sga/src/bin/sga-preqc-report.py genome-clean02.preqc ./sga/src/example
 python2 ./sga/src/bin/sga-preqc-report.py genome.preqc ./sga/src/examples/preqc/*.preqc
 python2 ./sga/src/bin/sga-preqc-report.py genome-clean-alldata.preqc ./sga/src/examples/preqc/*.preqc
 
-# kmer size
+# Kmergenie
 ./kmergenie/kmergenie-1.7048/kmergenie ./sga/genome-clean02.fastq -o ./kmergenie/genome-clean02
 ./kmergenie/kmergenie-1.7048/kmergenie genome-clean-alldata.fastq -o ./kmergenie/genome-clean-alldata #K was run between 15 to 121
 ./kmergenie/kmergenie-1.7048/kmergenie genome-clean-alldata.fastq -l 10 -o ./kmergenie/genome-clean-alldata10 # change minimum k to 10
 
-# assembly with minia
+# Minia
+## assembly
 ./minia-v2.0.7-bin-Linux/bin/minia -in ./sga/genome-clean02.fastq -kmer-size 19 -abundance-min 22 -out ./minia/minia-genome-clean02-19
 ./minia-v2.0.7-bin-Linux/bin/minia -in ./sga/genome-clean02.fastq -kmer-size 21 -abundance-min 21 -out ./minia/minia-genome-clean02-21
 ./minia-v2.0.7-bin-Linux/bin/minia -in genome-clean-alldata.fastq -kmer-size 15 -abundance-min 21 -out ./minia/minia-genome-clean-alldata-15
 
 
 
-## Alignment mitogenomes and genome
+# Alignment mitogenomes and genome
 mkdir mapping
 #convert fastq to fasta. Using fastz-toolkit
 fastq_to_fasta -i genome.fq -o genome.fasta
 
-# normalize fasta file
+# Normalize fasta file
 picard-tools NormalizeFasta I=./minia/assembly-41/minia-assem01.contigs.fa O=./minia/assembly-41/minia-assem01.contigs.nor.fa
 
-1.Creating a reference directory using bowtie2
+# Bowtie2
+## Creating a reference directory
 bowtie2-build ./minia/assembly-41/minia-assem01.contigs.nor.fa ./mapping/bowtie-index
 bowtie2 -x bowtie-index -q stonefly-mitgen-fastq.fq -S align-mito-local.sam --local
 bowtie2 -x bowtie-index -f stonefly-mitgen-seq-genebank.fasta -N 1 -S align-bowtie-fasta.sam
 
-#t ransform sam output of bowtie to .bam
+## t ransform sam output of bowtie to .bam
 ./samtools-1.8/samtools view -b -h -S ./mapping/align-mito-local.sam -o ./mapping/align-mito-local.bam
 
-# clean up some reads
+## clean up some reads
 ./samtools-1.8/samtools fixmate -O bam ./mapping/align-mito-local.sam ./mapping/align-mito-local-fix.bam
 
-# sort .bam files
+## sort .bam files
 ./samtools-1.8/samtools sort ./mapping/align-mito-local-fix.bam -o ./mapping/align-mito-local-fix-sorted.bam
 
-# index .bam files
+## index .bam files
 ./samtools-1.8/samtools index ./mapping/align-mito-local-fix-sorted.bam
 
-# view alignment
+## view alignment
 ./samtools-1.8/samtools tview ./mapping/align-mito-local-fix-sorted.bam
 
-
+# BWA
 ## Create a index file for bwa
 bwa index ./minia/assembly-41/minia-assem01.contigs.nor.fa -p ./mapping/bwa-index
 bwa mem bwa-index stonefly-mitgen-fastq.fq > align-bwa.sam
@@ -96,7 +99,7 @@ bwa mem bwa-index stonefly-mitgen-fastq.fq > align-bwa.sam
 ./samtools-1.8/samtools index ./mapping/align-bwa-sorted.bam
 ./samtools-1.8/samtools tview ./mapping/align-bwa-sorted.bam
 
-## Seeing alignments in igv
+# Draw alignments in igv
 type igv in consola
 
-## Pot using circos
+# Pot using circos
